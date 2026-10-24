@@ -94,11 +94,24 @@ foreach ($name in $gnu_alias) {
 
 Import-Module PSReadLine -ErrorAction SilentlyContinue 
 
-# não salvar comandos iniciando com espaço no histórico 
-Set-PSReadLineOption -AddToHistoryHandler { 
- param($line) 
- return -not $line.StartsWith(' ') 
-} 
+# não salvar comandos iniciando com espaço no histórico ou dupplicados
+Set-PSReadLineOption -AddToHistoryHandler {
+    param($line)
+
+    if ($line.StartsWith(' ')) {
+        return $false
+    }
+
+    $historyPath = (Get-PSReadLineOption).HistorySavePath
+    $history = @(Get-Content -LiteralPath $historyPath -ErrorAction SilentlyContinue)
+
+    if ($history -ccontains $line) {
+        $history = @($history | Where-Object { $_ -cne $line })
+        Set-Content -LiteralPath $historyPath -Value $history -Encoding utf8
+    }
+
+    return $true
+}
 
 # Persistent history, similar to Zsh 
 Set-PSReadLineOption -EditMode Emacs 
