@@ -11,7 +11,7 @@ fi
 export TERM="xterm-256color"
 export EDITOR='/usr/bin/nano'
 
-POWERLEVEL9K_DISABLE_GITSTATUS=true
+# POWERLEVEL9K_DISABLE_GITSTATUS=true
 
 HISTFILE=$HOME/.zhistory
 SAVEHIST=50000
