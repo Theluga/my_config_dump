@@ -22,9 +22,6 @@ export HISTFILESIZE=50000
 export HISTCONTROL=ignoreboth:erasedups
 export HISTTIMEFORMAT='%F %T  '
 
-# export VCPKG_ROOT='$HOME/.local/share/vcpkg'
-
-
 # ===== 3. History =====
 shopt -s histappend
 shopt -s cmdhist
@@ -318,7 +315,6 @@ mkcd() {
 	command mkdir -p -- "$1" && cd -- "$1"
 }
 
-
 extract() {
 	[[ $# -gt 0 ]] || {
 		printf 'Usage: extract ARCHIVE...\n' >&2
@@ -359,10 +355,6 @@ extract() {
 		*.alz) 7z x "$archive" ;;
 		*.wim) 7z x "$archive" ;;
 		*.iso) 7z x "$archive" ;;
-		*.deb) dpkg-deb -x "$archive" "${archive%.deb}.extracted" ;;
-		*.rpm) mkdir -p "${archive%.rpm}.extracted" &&
-			rpm2cpio "$archive" |
-				( cd "${archive%.rpm}.extracted" && cpio -idmu ) ;;
 		*.apk) 7z x "$archive" -o"${archive%.apk}.extracted" ;;
 
 		# Single-file compression formats
@@ -403,7 +395,6 @@ extract() {
 	return "$status"
 }
 
-
 # Search filenames using standard find + grep.
 ff() {
 	[[ $# -gt 0 ]] || {
@@ -426,8 +417,4 @@ ftxt() {
 # Disk usage for the current directory or supplied paths.
 duh() {
 	du -sh -- "${@:-.}"
-}
-
-reload() {
-	source "$HOME/.bashrc"
 }
