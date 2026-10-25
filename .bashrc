@@ -1,27 +1,16 @@
 #
 # ~/.bashrc
 #
+# ===== 1. Interactive shell guard =====
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-alias ls='ls --color=auto'
-alias grep='grep --color=auto'
-PS1='[\u@\h \W]\$ '
-
-# export EDITOR='/usr/bin/nano'
-
-# export VCPKG_ROOT='$HOME/.local/share/vcpkg'
-
 # ~/.bashrc — Minimal corporate-server configuration
 # Dependencies: Bash + standard system utilities.
-# Optional: Git, curl.
+# Optional: Git
 # No third-party shell plugins or package-manager assumptions.
+# my work servers could have anything
 
-# ===== 1. Interactive shell guard =====
-case $- in
-*i*) ;;
-*) return ;;
-esac
 
 # ===== 2. Environment =====
 export EDITOR="${EDITOR:-nano}"
@@ -33,12 +22,15 @@ export HISTFILESIZE=50000
 export HISTCONTROL=ignoreboth:erasedups
 export HISTTIMEFORMAT='%F %T  '
 
+# export VCPKG_ROOT='$HOME/.local/share/vcpkg'
+
+
 # ===== 3. History =====
 shopt -s histappend
 shopt -s cmdhist
 shopt -s checkwinsize
 
-# why did I make so much write/read calls? I gave up synchronization... 
+# why did I make so much write/read calls? I gave up synchronization...
 # # save new commands from other sessions and append our own.
 # __history_sync() {
 # 	history -a
@@ -235,7 +227,7 @@ alias ....='cd ../../..'
 alias c='clear'
 alias h='history'
 alias j='jobs -l'
-alias path='printf "%s\n" "${PATH//:/\\n}"'
+alias path='tr ":" "\n" <<< "$PATH"'
 
 # ===== 7. Git prompt =====
 __git_cache_path=''
@@ -269,26 +261,35 @@ __git_prompt() {
 
 	if [[ -n $status ]]; then
 		dirty='*'
-		__git_cache_value=" ${__c_yellow}git:${branch}${dirty}${__c_reset}"
+		__git_cache_value=" 🍂${__c_yellow}git:${branch}${dirty}${__c_reset}"
 	else
-		__git_cache_value=" ${__c_green}git:${branch}${__c_reset}"
+		__git_cache_value=" 🌿${__c_green}git:${branch}${__c_reset}"
 	fi
 
 	printf '%s' "$__git_cache_value"
 }
 
 # ===== 8. Prompt =====
+
 __set_prompt() {
 	local rc=$?
 
+	local user_host path git_info
+	user_host="👤\u@\h"
+	path="📁\w"
+	git_info="$(__git_prompt)"
+
 	if ((rc == 0)); then
-		PS1="${__c_green}\u@\h${__c_reset}:${__c_blue}\w${__c_reset}\$(__git_prompt)\n${__c_purple} ❯ ${__c_reset} "
+		PS1="${__c_green}${user_host}${__c_reset} ${__c_blue}${path}${__c_reset}${git_info}\n${__c_purple} ❯ ${__c_reset} "
 	else
-		PS1="${__c_red}\u@\h [exit:${rc}]${__c_reset}:${__c_blue}\w${__c_reset}\$(__git_prompt)\n${__c_purple} ❯ ${__c_reset} "
+		PS1="${__c_red}${user_host} [exit:${rc}]${__c_reset} ${__c_blue}${path}${__c_reset}${git_info}\n${__c_purple} ❯ ${__c_reset} "
 	fi
 }
 
-PROMPT_COMMAND="__set_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+#PS0=$'\e[1A\e[2K\r' # I give up trying to remove the title prompt from the terminal
+
+[[ ";$PROMPT_COMMAND;" != *";__set_prompt;"* ]] &&
+	PROMPT_COMMAND="__set_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 # ===== 9. Git aliases =====
 alias g='git'
@@ -297,9 +298,10 @@ alias gst='git status'
 alias gd='git diff'
 alias gds='git diff --staged'
 alias gl='git log --oneline --decorate -20'
-alias gp='git pull'
+alias gpl='git pull'
 alias gps='git push'
 alias gco='git checkout'
+alias gcp='git cherry-pick'
 alias gsw='git switch'
 alias gb='git branch'
 alias ga='git add'
@@ -316,27 +318,91 @@ mkcd() {
 	command mkdir -p -- "$1" && cd -- "$1"
 }
 
+
 extract() {
-	[[ $# -eq 1 && -f $1 ]] || {
-		printf 'Usage: extract ARCHIVE\n' >&2
+	[[ $# -gt 0 ]] || {
+		printf 'Usage: extract ARCHIVE...\n' >&2
 		return 2
 	}
 
-	case "$1" in
-	*.tar.gz | *.tgz) tar -xzf "$1" ;;
-	*.tar.bz2 | *.tbz2) tar -xjf "$1" ;;
-	*.tar.xz | *.txz) tar -xJf "$1" ;;
-	*.tar) tar -xf "$1" ;;
-	*.zip) unzip "$1" ;;
-	*.gz) gunzip "$1" ;;
-	*.bz2) bunzip2 "$1" ;;
-	*.xz) unxz "$1" ;;
-	*)
-		printf 'Unsupported archive: %s\n' "$1" >&2
-		return 1
-		;;
-	esac
+	local archive status=0
+
+	for archive in "$@"; do
+		if [[ ! -f $archive ]]; then
+			printf 'Not a file: %s\n' "$archive" >&2
+			status=1
+			continue
+		fi
+
+		case "$archive" in
+		# TAR archives
+		*.tar) tar -xf "$archive" ;;
+		*.tar.gz | *.tgz | *.taz) tar -xzf "$archive" ;;
+		*.tar.bz2 | *.tbz2 | *.tbz) tar -xjf "$archive" ;;
+		*.tar.xz | *.txz) tar -xJf "$archive" ;;
+		*.tar.zst | *.tzst) tar --zstd -xf "$archive" ;;
+		*.tar.lz4) tar --use-compress-program=lz4 -xf "$archive" ;;
+		*.tar.lz) tar --lzip -xf "$archive" ;;
+		*.tar.lzma) tar --lzma -xf "$archive" ;;
+		*.tar.Z | *.tZ) tar -xZf "$archive" ;;
+		*.tar.br) tar --use-compress-program=brotli -xf "$archive" ;;
+
+		# Standard archive formats
+		*.zip | *.ZIP) unzip "$archive" ;;
+		*.7z | *.7Z) 7z x "$archive" ;;
+		*.rar | *.RAR) 7z x "$archive" ;;
+		*.tar.*) tar -xf "$archive" ;;
+		*.ar) ar x "$archive" ;;
+		*.cab) 7z x "$archive" ;;
+		*.lha | *.lzh) 7z x "$archive" ;;
+		*.ace) 7z x "$archive" ;;
+		*.alz) 7z x "$archive" ;;
+		*.wim) 7z x "$archive" ;;
+		*.iso) 7z x "$archive" ;;
+		*.deb) dpkg-deb -x "$archive" "${archive%.deb}.extracted" ;;
+		*.rpm) mkdir -p "${archive%.rpm}.extracted" &&
+			rpm2cpio "$archive" |
+				( cd "${archive%.rpm}.extracted" && cpio -idmu ) ;;
+		*.apk) 7z x "$archive" -o"${archive%.apk}.extracted" ;;
+
+		# Single-file compression formats
+		*.gz) gunzip "$archive" ;;
+		*.bz2) bunzip2 "$archive" ;;
+		*.xz) unxz "$archive" ;;
+		*.lzma) unlzma "$archive" ;;
+		*.zst) unzstd "$archive" ;;
+		*.lz4) lz4 -d "$archive" ;;
+		*.br) brotli -d "$archive" ;;
+		*.Z) uncompress "$archive" ;;
+		*.lz) lzip -d "$archive" ;;
+		*.sz) snzip -d "$archive" ;;
+		*.rz) rzip -d "$archive" ;;
+		*.lzo) lzop -d "$archive" ;;
+		*.uu | *.uue) uudecode "$archive" ;;
+		*.xx) xxdecode "$archive" ;;
+		*.zoo) 7z x "$archive" ;;
+		*.arc) 7z x "$archive" ;;
+		*.pak) 7z x "$archive" ;;
+
+		# try windows binary too
+		*.exe) 7z x "$archive" ;;
+
+		*)
+			printf 'Unsupported archive: %s\n' "$archive" >&2
+			status=1
+			continue
+			;;
+		esac
+
+		if [[ $? -ne 0 ]]; then
+			printf 'Failed to extract: %s\n' "$archive" >&2
+			status=1
+		fi
+	done
+
+	return "$status"
 }
+
 
 # Search filenames using standard find + grep.
 ff() {
@@ -349,7 +415,7 @@ ff() {
 }
 
 # Search file contents recursively.
-ftext() {
+ftxt() {
 	[[ $# -gt 0 ]] || {
 		printf 'Usage: ftext PATTERN [DIRECTORY]\n' >&2
 		return 2
@@ -357,31 +423,9 @@ ftext() {
 	grep -RIn --exclude-dir=.git -- "$1" "${2:-.}"
 }
 
-# Display all executable resolutions.
-which() {
-	[[ $# -gt 0 ]] || {
-		printf 'Usage: which COMMAND\n' >&2
-		return 2
-	}
-	type -a -- "$@"
-}
-
 # Disk usage for the current directory or supplied paths.
 duh() {
 	du -sh -- "${@:-.}"
-}
-
-# Simple HTTP HEAD request, if curl is available.
-httphead() {
-	command -v curl >/dev/null 2>&1 || {
-		printf 'curl is not installed\n' >&2
-		return 127
-	}
-	curl -sSIL -- "$@"
-}
-
-edit() {
-	command "$EDITOR" "$@"
 }
 
 reload() {
