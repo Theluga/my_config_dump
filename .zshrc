@@ -118,7 +118,6 @@ bindkey '^[OM' insert-newline-no-exec
 # 7a. Autosuggestions
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 ZSH_AUTOSUGGEST_STRATEGY=(match_prev_cmd history completion)
-ZSH_AUTOSUGGEST_CLEAR_WIDGETS+=(handle_enter)
 
 # 7b. Fast Syntax Highlighting
 source /usr/share/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
