@@ -1,8 +1,23 @@
 #
 # ~/.bashrc
 #
+
+# ===== 0. Load Original Options =====
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+# User specific environment
+if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
+then
+    PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+fi
+export PATH
+
 # ===== 1. Interactive shell guard =====
 # If not running interactively, don't do anything
+
 [[ $- != *i* ]] && return
 
 # ~/.bashrc — Minimal corporate-server configuration
@@ -184,23 +199,26 @@ bind -x '"\e[B": __history_substring_forward'
 
 # ===== 5. Colors =====
 if command -v tput >/dev/null 2>&1 &&
-	[[ -n ${TERM:-} && ${TERM:-dumb} != dumb ]] &&
-	[[ -t 1 ]]; then
-	__c_reset=$(tput sgr0 2>/dev/null)
-	__c_blue=$(tput setaf 4 2>/dev/null)
-	__c_green=$(tput setaf 2 2>/dev/null)
-	__c_yellow=$(tput setaf 3 2>/dev/null)
-	__c_red=$(tput setaf 1 2>/dev/null)
-	__c_cyan=$(tput setaf 6 2>/dev/null)
-	__c_purple=$(tput setaf 5 2>/dev/null)
+    [[ -n ${TERM:-} && ${TERM:-dumb} != dumb ]] &&
+    [[ -t 1 ]]; then
+
+    # \[ and \] tell Readline that the enclosed characters
+    # are terminal control sequences with zero display width.
+    __c_reset="\[$(tput sgr0 2>/dev/null)\]"
+    __c_blue="\[$(tput setaf 4 2>/dev/null)\]"
+    __c_green="\[$(tput setaf 2 2>/dev/null)\]"
+    __c_yellow="\[$(tput setaf 3 2>/dev/null)\]"
+    __c_red="\[$(tput setaf 1 2>/dev/null)\]"
+    __c_cyan="\[$(tput setaf 6 2>/dev/null)\]"
+    __c_purple="\[$(tput setaf 5 2>/dev/null)\]"
 else
-	__c_reset=''
-	__c_blue=''
-	__c_green=''
-	__c_yellow=''
-	__c_red=''
-	__c_cyan=''
-	__c_purple=''
+    __c_reset=''
+    __c_blue=''
+    __c_green=''
+    __c_yellow=''
+    __c_red=''
+    __c_cyan=''
+    __c_purple=''
 fi
 
 # ===== 6. Aliases =====
@@ -277,9 +295,9 @@ __set_prompt() {
 	git_info="$(__git_prompt)"
 
 	if ((rc == 0)); then
-		PS1="${__c_green}${user_host}${__c_reset} ${__c_blue}${path}${__c_reset}${git_info}\n${__c_purple} ❯ ${__c_reset} "
+		PS1="${__c_green}${user_host}${__c_reset} ${__c_blue}${path}${__c_reset}${git_info}\n${__c_purple} > ${__c_reset} "
 	else
-		PS1="${__c_red}${user_host} [exit:${rc}]${__c_reset} ${__c_blue}${path}${__c_reset}${git_info}\n${__c_purple} ❯ ${__c_reset} "
+		PS1="${__c_red}${user_host} [exit:${rc}]${__c_reset} ${__c_blue}${path}${__c_reset}${git_info}\n${__c_purple} > ${__c_reset} "
 	fi
 }
 
